@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 
-SCRIPT = Path('.agents/skills/godogen/scripts/godogen.py')
+SCRIPT = Path('skills/godogen/scripts/godogen.py')
 spec = importlib.util.spec_from_file_location('godogen_cli', SCRIPT)
 module = importlib.util.module_from_spec(spec)
 assert spec.loader is not None
@@ -21,12 +21,7 @@ def test_project_language(tmp_path):
 
 def test_bootstrap_creates_manifest(tmp_path):
     target = tmp_path / 'games' / 'demo'
-    args = type('Args', (), {
-        'target': str(target),
-        'allow_non_empty': False,
-        'name': 'Demo Game',
-        'language': 'gdscript',
-    })()
+    args = type('Args', (), {'target': str(target), 'allow_non_empty': False, 'name': 'Demo Game', 'language': 'gdscript'})()
     assert module.bootstrap(args) == 0
     assert (target / 'project.godot').is_file()
     assert (target / 'scripts/main.gd').is_file()
