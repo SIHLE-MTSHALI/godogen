@@ -61,8 +61,8 @@ def parse_project(path: Path) -> dict[str, Any]:
 
     text = path.read_text(encoding="utf-8", errors="replace")
     keys = {
-        "config/name": None,
-        "run/main_scene": None,
+        "application/config/name": None,
+        "application/run/main_scene": None,
         "rendering/renderer/rendering_method": None,
         "rendering/renderer/rendering_method.mobile": None,
         "physics/3d/physics_engine": None,
