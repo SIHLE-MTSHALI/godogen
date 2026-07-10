@@ -2,7 +2,7 @@ name: Native Codex skill
 
 on:
   push:
-    branches: [master, 'feat/**']
+    branches: [master, 'feat/**', 'docs/**']
   pull_request:
 
 permissions:
@@ -23,7 +23,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install test dependencies
         run: python -m pip install pytest jsonschema
-      - name: Validate metadata and schemas
+      - name: Validate metadata, schemas and guides
         shell: python
         run: |
           import json
@@ -32,9 +32,19 @@ jobs:
           skill = Path('skills/godogen/SKILL.md')
           metadata = Path('skills/godogen/agents/openai.yaml')
           schema = json.loads(Path('skills/godogen/schemas/proof-report.schema.json').read_text(encoding='utf-8'))
+          readme = Path('README.md').read_text(encoding='utf-8')
+          skill_text = skill.read_text(encoding='utf-8')
           assert skill.is_file() and metadata.is_file()
-          assert 'name: godogen' in skill.read_text(encoding='utf-8')
+          assert 'name: godogen' in skill_text
           assert 'display_name: "GodoGen"' in metadata.read_text(encoding='utf-8')
+          assert 'Continue working on an existing game' in readme
+          assert 'OpenAI image API' in readme
+          assert 'ChatGPT manual asset creation' in skill_text
+          assert Path('docs/INSTALLATION.md').is_file()
+          assert Path('docs/EXISTING_PROJECTS.md').is_file()
+          assert Path('docs/ASSET_CREATION.md').is_file()
+          assert Path('docs/OPENAI_ASSET_ADAPTER.md').is_file()
+          assert Path('skills/godogen/scripts/openai_asset.py').is_file()
           Draft202012Validator.check_schema(schema)
           assert not Path('.agents/skills/godogen').exists()
       - name: Compile Python tooling
