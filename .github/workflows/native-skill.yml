@@ -1,0 +1,61 @@
+name: Native Codex skill
+
+on:
+  push:
+    branches:
+      - master
+      - feat/**
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.10', '3.12']
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install test dependencies
+        run: python -m pip install pytest
+
+      - name: Validate metadata files
+        shell: python
+        run: |
+          from pathlib import Path
+
+          skill = Path('.agents/skills/godogen/SKILL.md')
+          metadata = Path('.agents/skills/godogen/agents/openai.yaml')
+          assert skill.is_file()
+          assert metadata.is_file()
+          assert 'name: godogen' in skill.read_text(encoding='utf-8')
+          assert 'display_name: "GodoGen"' in metadata.read_text(encoding='utf-8')
+
+      - name: Compile Python tooling
+        run: python -m compileall -q .agents/skills/godogen/scripts tests
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: PowerShell syntax check
+        shell: pwsh
+        run: |
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'powershell/Install-GodoGen.ps1'),
+            [ref]$null,
+            [ref]$errors
+          )
+          if ($errors.Count -gt 0) {
+            $errors | Format-List | Out-String | Write-Error
+          }
