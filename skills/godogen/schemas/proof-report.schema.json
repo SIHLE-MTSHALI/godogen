@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SIHLE-MTSHALI/godogen/schemas/proof-report.schema.json",
+  "title": "GodoGen Proof Report",
+  "type": "object",
+  "required": ["schema_version", "status", "project", "failures", "reports", "artifact_sha256"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "status": {"enum": ["passed", "failed"]},
+    "project": {"type": "string", "minLength": 1},
+    "failures": {"type": "array", "items": {"type": "string"}},
+    "reports": {"type": "object"},
+    "artifact_sha256": {
+      "type": "object",
+      "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+    }
+  },
+  "additionalProperties": false
+}

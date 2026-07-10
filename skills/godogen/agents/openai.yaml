@@ -1,0 +1,7 @@
+interface:
+  display_name: "GodoGen"
+  short_description: "Build and prove Godot games with Codex"
+  default_prompt: "Use $godogen to inspect the current repository, implement the next complete gameplay slice, run build and runtime verification, repair failures, and produce proof artifacts."
+
+policy:
+  allow_implicit_invocation: true

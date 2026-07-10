@@ -1,73 +1,191 @@
-# Godogen
+# GodoGen
 
-Autonomous game development for Godot, Bevy, and Babylon.js with Claude Code and Codex.
+GodoGen is an install-once Codex skill and verification toolkit for building, repairing, testing and proving Godot games. It keeps the original project’s strongest principle: a clean compile is not enough. Work is complete only after the running game has produced credible evidence.
 
-[![Watch the video](https://img.youtube.com/vi/eUz19GROIpY/maxresdefault.jpg)](https://youtu.be/eUz19GROIpY)
+The repository still contains the upstream Claude, Bevy and Babylon publishing material, but this fork’s primary path is the native Godot skill under `skills/godogen`.
 
-[Watch the demos](https://youtu.be/eUz19GROIpY) · [Prompts](docs/demo_prompts.md)
+## What it does
 
-Describe a game. The agent builds it, generates assets, runs the engine, and proves the result — as a live game you watch and steer, or as a recorded video when you're not there. It reads the situation and decides which, in the run.
+GodoGen gives Codex a repeatable workflow:
 
-This repo is not a game. It is the source for a generator that produces games: **godogen -> game repo -> game**. You publish into a fresh game repo — choosing engine and host-agent flavor — then the agent runs inside that repo and builds the actual game from a short engine guide.
+1. inspect the machine and existing project;
+2. choose a complete, player-visible vertical slice;
+3. implement without replacing working systems unnecessarily;
+4. build and import the project;
+5. run automated tests;
+6. launch or record the game;
+7. inspect runtime and visual evidence;
+8. repair failures and repeat the downstream gates;
+9. generate machine-readable proof reports.
 
-## Source layout
+It supports Godot C# and GDScript projects on Windows, WSL2, Linux and macOS.
 
-A published repo is intentionally thin: a runtime manifest, a one-page engine guide, and the asset-generation skill. The agent recreates everything else (project scaffold, capture tooling) from the guide.
+## Beginner quick start on Windows
 
-- `prompts/runtime.md` — the runtime manifest
-- `asset-gen/` — the cross-engine asset-generation skill
-- `engines/babylon.md`, `engines/godot.md`, `engines/bevy.md` — per-engine guides
-- [publish.sh](publish.sh) — renders the runtime layout for the chosen engine and host agent
+### 1. Install prerequisites
 
-Engine and host agent (Claude vs Codex) are publish-time render choices, not separate source trees.
+Install:
 
-## What the agent does
+- Git;
+- Python 3.10 or newer;
+- Godot 4;
+- the Godot .NET build and .NET SDK when using C#;
+- ffmpeg when you want video proof;
+- Codex Desktop or Codex CLI.
 
-- **Godot 4** — C#/.NET projects with build-time scene generation, runtime scripts, and Jolt physics.
-- **Bevy** — Rust/Bevy projects with code-first ECS scenes and offscreen capture.
-- **Babylon.js** — TypeScript/Vite browser games served at a live URL.
-- **Asset generation** — Gemini for precise references and characters, xAI Grok for textures and simple objects, Tripo3D for image-to-3D and rigged biped animation; animated sprites via Grok video with loop detection and background removal.
-- **Proof over claims** — the agent judges results from the running game (a live URL or a recorded clip), not from a clean compile, so visible defects drive the next iteration.
-- **You choose your involvement** — watch the live game (a Babylon.js URL, or a Godot/Bevy project you run) and steer at decision points, or leave the run unattended and get a 15–20s proof recording at the end. The agent takes its cue from how you frame the task.
+Make sure `python`, `godot`, `git` and, for C#, `dotnet` work from PowerShell.
 
-## Getting started
+### 2. Clone this repository
 
-### Prerequisites
-
-- [Godot 4](https://godotengine.org/download/) (.NET build) on `PATH` for Godot projects
-- Rust/Cargo for Bevy projects
-- Node.js 22.12+ and npm for Babylon.js projects
-- Chrome or Chromium with hardware WebGL2 for Babylon.js browser capture
-- Python 3 with pip
-- API keys as environment variables:
-  - `GOOGLE_API_KEY` — [Google AI Studio](https://aistudio.google.com/) for Gemini image generation
-  - `XAI_API_KEY` — [xAI Grok](https://console.x.ai/home) for image/video generation
-  - `TRIPO3D_API_KEY` — [Tripo3D](https://platform.tripo3d.ai/) for 3D generation
-- System packages from [setup.md](setup.md): `vulkan-tools`, `xvfb`, `ffmpeg`, `imagemagick`, plus platform-specific extras
-- Tested on Ubuntu, Debian, and macOS
-- Claude Code or Codex
-
-### Publish a game repo
-
-Pick the engine and host agent:
-
-```bash
-./publish.sh --engine godot   --agent claude --out ~/my-game       # CLAUDE.md + .claude/skills/
-./publish.sh --engine babylon --agent codex  --out ~/my-game       # AGENTS.md + .agents/skills/
-./publish.sh --engine bevy    --agent claude --out ~/my-game
+```powershell
+git clone https://github.com/SIHLE-MTSHALI/godogen.git
+cd godogen
 ```
 
-Pass `--force` to wipe existing contents at the target before re-publishing.
+### 3. Install the skill for your user
 
-## Running on a server
+```powershell
+powershell -ExecutionPolicy Bypass -File .\powershell\Install-GodoGen.ps1 -Scope User
+```
 
-A full generation run can take hours, so it's convenient to offload it to a server — ideally a GPU instance, since engine rendering and video capture are much faster with hardware acceleration.
+To replace an older installation safely:
 
-- Keep the session alive across SSH drops with `tmux` or `screen`.
-- Enable remote control so you can check in and steer the run from any device — both Claude Code and Codex have official remote-control interfaces.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\powershell\Install-GodoGen.ps1 -Scope User -Force
+```
 
-## Changelog
+The installer moves the old skill to a timestamped backup before copying the new version.
 
-See [CHANGELOG.md](CHANGELOG.md).
+### 4. Verify a Godot project
 
-Follow progress: [@alex_erm](https://x.com/alex_erm)
+From the game repository, ask Codex:
+
+```text
+$godogen inspect this project, explain what is working and broken, implement the next complete gameplay slice, run every required gate, repair failures and produce proof artifacts.
+```
+
+You can also run the tools directly from the installed skill:
+
+```powershell
+python "$HOME\.codex\skills\godogen\scripts\doctor.py" --project . --json artifacts\godogen\doctor.json
+python "$HOME\.codex\skills\godogen\scripts\godogen.py" build --project .
+python "$HOME\.codex\skills\godogen\scripts\godogen.py" test --project .
+python "$HOME\.codex\skills\godogen\scripts\godogen.py" verify --project .
+```
+
+## Create a starter project
+
+GDScript:
+
+```powershell
+python skills\godogen\scripts\godogen.py bootstrap C:\Games\MyGame --name MyGame --language gdscript
+```
+
+C#:
+
+```powershell
+python skills\godogen\scripts\godogen.py bootstrap C:\Games\MyGame --name MyGame --language csharp
+```
+
+Bootstrap refuses unsafe and non-empty destinations by default. It writes `artifacts/godogen/bootstrap-manifest.json`, listing every file it created.
+
+## Command reference
+
+| Command | Purpose | Main output |
+|---|---|---|
+| `doctor.py` | Non-mutating environment and project inspection | `doctor.json` |
+| `godogen.py bootstrap` | Create a minimal safe Godot project | bootstrap manifest |
+| `godogen.py build` | Build C#, import resources and smoke-load Godot | build report and logs |
+| `godogen.py test` | Run GUT, .NET tests or a smoke fallback | test report and log |
+| `godogen.py capture` | Record deterministic proof using Godot movie writing | video and capture report |
+| `godogen.py verify` | Check required reports and hash evidence | proof report and summary |
+
+Run `python skills/godogen/scripts/godogen.py --help` for all options.
+
+## Evidence directory
+
+GodoGen writes generated evidence under:
+
+```text
+artifacts/godogen/
+├── doctor.json
+├── bootstrap-manifest.json
+├── build-report.json
+├── test-report.json
+├── capture-report.json
+├── proof-report.json
+├── proof-summary.md
+├── *.log
+├── screenshots/
+└── video/
+```
+
+`proof-report.json` follows `skills/godogen/schemas/proof-report.schema.json` and includes SHA-256 hashes for the evidence files.
+
+## Safety model
+
+- The canonical skill source lives in `skills/godogen`, not `.agents/skills`.
+- `.agents/skills/godogen` is only a project-scoped installation destination.
+- The Windows installer supports `-WhatIf` and safe backup-on-replace.
+- Bootstrap refuses filesystem roots, home directories and shallow unsafe targets.
+- Existing project files are not overwritten by bootstrap.
+- Paid asset providers are never invoked unless repository policy or the user explicitly approves the spend.
+- Secrets remain outside the repository.
+
+## Advanced workflow
+
+The skill defines `safe`, `standard` and `full` modes. Standard mode is the default. In all modes, Codex must inspect `AGENTS.md`, preserve the existing Godot version and architecture where practical, implement one coherent vertical slice at a time, and rerun every downstream gate after a repair.
+
+For C# projects, GodoGen runs `dotnet build` before Godot import and smoke loading. For GDScript projects it imports and smoke-loads directly. Existing project-specific commands take precedence when they are more precise.
+
+Capture is intentionally separate from build and test because graphical execution may require a native desktop, GPU, display server or project-specific presentation scene. Use `verify --require-capture` only when a capture has actually been produced.
+
+## Repository layout
+
+```text
+skills/godogen/                 Canonical Codex skill source
+powershell/Install-GodoGen.ps1  Windows installer
+tests/                          Python tool tests
+.github/workflows/              Cross-platform CI
+asset-gen/                      Upstream asset generation system
+engines/                        Upstream engine guidance
+publish.sh                      Legacy/upstream publisher
+```
+
+## Development and validation
+
+```bash
+python -m pip install pytest
+python -m compileall -q skills/godogen/scripts tests
+python -m pytest -q
+```
+
+CI runs on Windows, Ubuntu and macOS with Python 3.10 and 3.12. It validates skill metadata, Python syntax, unit tests, JSON schemas and PowerShell parsing.
+
+## Troubleshooting
+
+### `godot` is not found
+
+Add the directory containing the Godot executable to `PATH`, restart the terminal and run `godot --version`.
+
+### C# project reports that Godot is not a .NET build
+
+Install the Godot .NET edition. The standard editor cannot compile or run Godot C# scripts.
+
+### The installer says GodoGen already exists
+
+Run it with `-Force`. The existing installation is moved to a timestamped backup first.
+
+### Capture produces no useful video
+
+Confirm the project has a main scene, renders on the current machine and exits within the selected frame count. For deterministic proof, create a presentation scene that drives input and camera movement itself.
+
+### Verification fails with missing reports
+
+Run `build` and `test` first. Add `capture`, then use `verify --require-capture`, only when visual proof is part of the acceptance criteria.
+
+## Status
+
+This fork is focused on the native Godot/Codex workflow. The legacy multi-engine publisher remains available for compatibility, but new Codex-oriented development should use the installed `$godogen` skill.
+
+See `CHANGELOG.md` for release history and `CONTRIBUTING.md` for contribution standards.
