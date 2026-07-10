@@ -2,9 +2,7 @@ name: Native Codex skill
 
 on:
   push:
-    branches:
-      - master
-      - feat/**
+    branches: [master, 'feat/**']
   pull_request:
 
 permissions:
@@ -18,35 +16,31 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ['3.10', '3.12']
     runs-on: ${{ matrix.os }}
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-
       - name: Install test dependencies
-        run: python -m pip install pytest
-
-      - name: Validate metadata files
+        run: python -m pip install pytest jsonschema
+      - name: Validate metadata and schemas
         shell: python
         run: |
+          import json
           from pathlib import Path
-
-          skill = Path('.agents/skills/godogen/SKILL.md')
-          metadata = Path('.agents/skills/godogen/agents/openai.yaml')
-          assert skill.is_file()
-          assert metadata.is_file()
+          from jsonschema import Draft202012Validator
+          skill = Path('skills/godogen/SKILL.md')
+          metadata = Path('skills/godogen/agents/openai.yaml')
+          schema = json.loads(Path('skills/godogen/schemas/proof-report.schema.json').read_text(encoding='utf-8'))
+          assert skill.is_file() and metadata.is_file()
           assert 'name: godogen' in skill.read_text(encoding='utf-8')
           assert 'display_name: "GodoGen"' in metadata.read_text(encoding='utf-8')
-
+          Draft202012Validator.check_schema(schema)
+          assert not Path('.agents/skills/godogen').exists()
       - name: Compile Python tooling
-        run: python -m compileall -q .agents/skills/godogen/scripts tests
-
+        run: python -m compileall -q skills/godogen/scripts tests
       - name: Run tests
         run: python -m pytest -q
-
       - name: PowerShell syntax check
         shell: pwsh
         run: |
@@ -56,6 +50,4 @@ jobs:
             [ref]$null,
             [ref]$errors
           )
-          if ($errors.Count -gt 0) {
-            $errors | Format-List | Out-String | Write-Error
-          }
+          if ($errors.Count -gt 0) { $errors | Format-List | Out-String | Write-Error }
