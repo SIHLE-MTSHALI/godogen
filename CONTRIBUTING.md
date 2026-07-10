@@ -1,65 +1,80 @@
-# Contributing to Godogen
+# Contributing to GodoGen
 
-## Philosophy
+GodoGen exists to help coding agents produce better games autonomously while keeping results testable, recoverable and visibly proven.
 
-Godogen is an autonomous pipeline. The goal is to generate the best possible games with as little human guidance as possible. Every piece of this repo exists to serve that goal.
+## Repository model
 
-We keep things lean and focused. We don't add features just to have them — we'd rather have one clear, well-built tool than several mediocre ones. Less surface area means easier maintenance and better agent efficiency. If a new feature doesn't make the pipeline meaningfully better at producing games autonomously, it doesn't belong here.
+The repository has two distinct layers:
 
-## How to Contribute
+- `skills/godogen` is the canonical source for the native Codex skill.
+- User and project installations are generated copies under a Codex home `skills/godogen` directory or a target repository’s `.agents/skills/godogen` directory.
 
-### Step 1: Open an Issue First
+Do not maintain generated `.agents/skills` or `.claude/skills` copies in this source repository.
 
-**All contributions start with an issue. Do not open a PR without an approved issue.**
+## Beginner development setup
 
-In your issue, explain:
+```bash
+python -m venv .venv
+```
 
-- **What** you want to change or add.
-- **Why** — how does this improve the autonomous pipeline? What concrete problem does it solve? Show evidence if you can (failed generations, error logs, before/after comparisons).
-- **Why not something simpler** — if there's a lighter-weight way to achieve the same result, explain why your approach is better.
+Activate it:
 
-Wait for maintainer approval before writing code. This saves everyone's time — yours included.
+```powershell
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
+```
 
-### Step 2: Get Approval
+```bash
+# Linux or macOS
+source .venv/bin/activate
+```
 
-A maintainer will respond to your issue. Possible outcomes:
+Install test dependencies and run the suite:
 
-- **Approved** — go ahead and implement.
-- **Needs discussion** — the idea has merit but the approach needs refinement.
-- **Closed** — doesn't fit the project direction. This isn't personal; the bar is high because scope discipline is how this project stays healthy.
+```bash
+python -m pip install --upgrade pip pytest jsonschema
+python -m compileall -q skills/godogen/scripts tests
+python -m pytest -q
+```
 
-### Step 3: Open a PR
+## Architecture rules
 
-Once approved, open a PR that references the issue. Keep it focused on what was discussed — avoid scope creep.
+1. Keep canonical skill source in `skills/godogen`.
+2. Treat `.agents/skills` only as an installation destination.
+3. Keep environment inspection non-mutating.
+4. Refuse filesystem roots, home directories and ambiguous destructive targets.
+5. Preserve commands, output, duration and exit codes in proof artifacts.
+6. Never turn a failed gate into a pass by suppressing an error.
+7. Keep paid asset generation opt-in and auditable.
+8. Add tests for every safety or orchestration change.
+9. Prefer backward-compatible report schema changes. Increment `schema_version` for breaking changes.
+10. Keep Windows, WSL2, Linux and macOS behaviour aligned.
 
-## What We're Looking For
+## Adding or changing a command
 
-**Good contributions** typically:
+When adding a command to `skills/godogen/scripts/godogen.py`:
 
-- Fix a bug that causes generation failures or degraded output.
-- Improve output quality in a measurable way (better scenes, fewer broken scripts, more reliable asset generation).
-- Reduce token usage or API costs without sacrificing quality.
-- Improve reliability of the pipeline (fewer crashes, better error recovery).
-- Improve or correct the Godot, Bevy, or asset-generation reference material.
+- define its safety boundary;
+- return non-zero on material failure;
+- write machine-readable output under `artifacts/godogen`;
+- preserve human-readable logs;
+- add success and failure tests;
+- document it in `README.md`;
+- update or add a JSON schema when external automation will consume the output.
 
-**We'll likely close contributions that:**
+## Pull request checklist
 
-- Add features the pipeline doesn't need to function.
-- Introduce alternative approaches when the existing one works fine.
-- Add configuration options for things that should have good defaults.
-- Are large refactors without a demonstrated problem they solve.
-- Touch many files with cosmetic or stylistic changes.
+- The change has a clear player, developer or operator benefit.
+- Beginner setup instructions remain copy-ready.
+- Advanced behaviour and failure modes are documented.
+- Unit tests cover success and failure paths.
+- Python compilation passes.
+- JSON schemas validate.
+- PowerShell parses without errors.
+- The diff contains no secrets, generated caches or proof binaries.
+- Review findings are answered and resolved.
+- CI is green before merge.
 
-## Code Expectations
+## Review priorities
 
-- Match the existing style and conventions in the repo.
-- Keep changes minimal and surgical. Small, focused PRs are easier to review and merge.
-- If your change touches a skill, test it by running the pipeline end-to-end and include the output or a summary of results.
-
-## PRs Without an Approved Issue Will Be Closed
-
-This isn't to be unwelcoming — it's to protect both maintainer time and contributor effort. The worst outcome is someone spending hours on a PR that was never going to be merged. The issue-first process prevents that.
-
-## Bug Reports and Questions
-
-Bug reports don't need prior approval — just open an issue with reproduction steps. Questions and discussions are welcome in issues too.
+Review data loss and unsafe path handling first. Then check false-positive verification, platform assumptions, hidden spending, secret exposure, dependency drift and claims not backed by executed checks. Style findings come after correctness, recoverability and trustworthy evidence.
